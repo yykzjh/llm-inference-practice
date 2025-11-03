@@ -8,5 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)  # 可选：禁用 GNU 扩展，更标准
 set(CMAKE_CUDA_ARCHITECTURES "90")
 
-# 添加子目录：CUDA Stream 示例
+# 添加子目录
 add_subdirectory(csrc/cuda_stream)
+add_subdirectory(csrc/cuda_stream_event)
