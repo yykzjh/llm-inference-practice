@@ -11,3 +11,4 @@ set(CMAKE_CUDA_ARCHITECTURES "90")
 # 添加子目录
 add_subdirectory(csrc/cuda_stream)
 add_subdirectory(csrc/cuda_stream_event)
+add_subdirectory(csrc/ops)
