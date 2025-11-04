@@ -1,0 +1,7 @@
+add_executable(get_graph_dot get_graph_dot.cu)
+add_executable(cuda_memory_pool cuda_memory_pool.cu)
+add_executable(cuda_graph_memory_pool cuda_graph_memory_pool.cu)
+
+target_link_libraries(get_graph_dot PRIVATE cudart)
+target_link_libraries(cuda_memory_pool PRIVATE cudart)
+target_link_libraries(cuda_graph_memory_pool PRIVATE cudart)
