@@ -20,10 +20,8 @@ add_library(utils STATIC
 set_target_properties(utils PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # 链接 CUDA 运行时库和 libtorch
-target_link_libraries(utils PRIVATE 
-    cudart 
-    ${TORCH_LIBRARIES}
-)
+target_link_libraries(utils PRIVATE cudart)
+target_link_libraries(utils PUBLIC ${TORCH_LIBRARIES})
 
 # 设置包含目录
 target_include_directories(utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
