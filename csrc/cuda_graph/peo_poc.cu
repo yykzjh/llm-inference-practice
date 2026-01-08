@@ -4,8 +4,8 @@
 #include "../utils/cuda_profiler.h"
 
 const int   MAX_BATCHSIZE     = 128;
-const float SCALE_COMM        = 2.0f;
-const float SCALE_COMP        = 3.0f;
+const float SCALE_COMP        = 2.0f;
+const float SCALE_COMM        = 3.0f;
 const int   WARMUP_ITERATIONS = 2;
 const int   RUN_ITERATIONS    = 10;
 
@@ -42,42 +42,36 @@ void peo_level_1(const int N, dim3 block, dim3 grid, float* d1, float* d2,
     for (int i = 0; i < RUN_ITERATIONS; ++i) {
         // pre_computation(0)
         addScaleKernelInPlaceComp<<<grid, block, 0, mainStream>>>(d1, SCALE_COMP, N);
-        cudaCheck(cudaEventRecord(forkEvent, mainStream));
-        // (1)
-        cudaCheck(cudaStreamWaitEvent(forkStream, forkEvent, 0));
         // D-S0 (2)
-        addScaleKernelInPlaceComm<<<grid, block, 0, forkStream>>>(d2, SCALE_COMM, N);
+        addScaleKernelInPlaceComm<<<grid, block, 0, mainStream>>>(d2, SCALE_COMM, N);
         // D-S1 (3)
-        addScaleKernelInPlaceComm<<<grid, block, 0, forkStream>>>(d2, SCALE_COMM, N);
+        addScaleKernelInPlaceComm<<<grid, block, 0, mainStream>>>(d2, SCALE_COMM, N);
         // D-R0 (4)
-        addScaleKernelInPlaceComm<<<grid, block, 0, forkStream>>>(d2, SCALE_COMM, N);
-        cudaCheck(cudaEventRecord(joinEvent, forkStream));
-        // (5)
-        cudaCheck(cudaStreamWaitEvent(mainStream, joinEvent, 0));
-        // MLP0 (6)
-        addScaleKernelInPlaceComp<<<grid, block, 0, mainStream>>>(d1, SCALE_COMP, N);
-        cudaCheck(cudaEventRecord(forkEvent, mainStream));
-        // D-R1 (7)
-        addScaleKernelInPlaceComm<<<grid, block, 0, forkStream>>>(d2, SCALE_COMM, N);
-        cudaCheck(cudaEventRecord(joinEvent, forkStream));
-        // (8)
-        cudaCheck(cudaStreamWaitEvent(mainStream, joinEvent, 0));
-        // MLP1 (9)
-        addScaleKernelInPlaceComp<<<grid, block, 0, mainStream>>>(d1, SCALE_COMP, N);
+        addScaleKernelInPlaceComm<<<grid, block, 0, mainStream>>>(d2, SCALE_COMM, N);
         cudaCheck(cudaEventRecord(joinEvent, mainStream));
-        // (10)
-        cudaCheck(cudaStreamWaitEvent(forkStream, forkEvent, 0));
-        // C-S0 (11)
-        addScaleKernelInPlaceComm<<<grid, block, 0, forkStream>>>(d2, SCALE_COMM, N);
-        // (12)
+        // (5)
         cudaCheck(cudaStreamWaitEvent(forkStream, joinEvent, 0));
-        // C-S1 (13)
-        addScaleKernelInPlaceComm<<<grid, block, 0, forkStream>>>(d2, SCALE_COMM, N);
-        // C-R (14)
-        addScaleKernelInPlaceComm<<<grid, block, 0, forkStream>>>(d2, SCALE_COMM, N);
+        // D-R1 (7)
+        addScaleKernelInPlaceComm<<<grid, block, 0, mainStream>>>(d2, SCALE_COMM, N);
+        cudaCheck(cudaEventRecord(joinEvent, mainStream));
+        // MLP0 (6)
+        addScaleKernelInPlaceComp<<<grid, block, 0, forkStream>>>(d1, SCALE_COMP, N);
+        cudaCheck(cudaEventRecord(forkEvent, forkStream));
+        // (10)
+        cudaCheck(cudaStreamWaitEvent(mainStream, forkEvent, 0));
+        // (8)
+        cudaCheck(cudaStreamWaitEvent(forkStream, joinEvent, 0));
+        // C-S0 (11)
+        addScaleKernelInPlaceComm<<<grid, block, 0, mainStream>>>(d2, SCALE_COMM, N);
+        // MLP1 (9)
+        addScaleKernelInPlaceComp<<<grid, block, 0, forkStream>>>(d1, SCALE_COMP, N);
         cudaCheck(cudaEventRecord(joinEvent, forkStream));
-        // (15)
+        // (12)
         cudaCheck(cudaStreamWaitEvent(mainStream, joinEvent, 0));
+        // C-S1 (13)
+        addScaleKernelInPlaceComm<<<grid, block, 0, mainStream>>>(d2, SCALE_COMM, N);
+        // C-R (14)
+        addScaleKernelInPlaceComm<<<grid, block, 0, mainStream>>>(d2, SCALE_COMM, N);
         // post_computation(16)
         addScaleKernelInPlaceComp<<<grid, block, 0, mainStream>>>(d1, SCALE_COMP, N);
     }
